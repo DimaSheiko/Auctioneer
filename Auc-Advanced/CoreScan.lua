@@ -1294,6 +1294,7 @@ function private.ScanPage(nextPage, really)
 			private.curQuery.invType, private.curQuery.classIndex, private.curQuery.subclassIndex, nextPage,
 			private.curQuery.isUsable, private.curQuery.quality)
 		AuctionFrameBrowse.page = nextPage
+		private.sentPage = nextPage -- bypasses the QueryAuctionItems hook, so set it here too
 
 		-- The maximum time we'll wait for the pagedata to be returned to us:
 		local now = GetTime()
@@ -1423,7 +1424,12 @@ local StorePageFunction = function()
 		return
 	end
 	private.sentQuery = false
-	local page = AuctionFrameBrowse.page
+	-- Use the page number captured from the QueryAuctionItems call, not Blizzard's
+	-- browse frame. Addons that drive their own paging (Auctionator, and any other
+	-- direct caller) never update AuctionFrameBrowse.page, so it stays at whatever
+	-- the browse UI last showed. Every page after the first then failed the
+	-- page > qryinfo.page test below and was dropped without a word.
+	local page = private.sentPage or AuctionFrameBrowse.page
 	if not private.curScan then
 		private.curScan = {}
 	end
@@ -1837,6 +1843,7 @@ function QueryAuctionItems(name, minLevel, maxLevel, invTypeIndex, classIndex, s
 	end
 
 	page = tonumber(page) or 0
+	private.sentPage = page -- StorePage needs the page we actually asked for
 	if (page==0) then
 		local scanSize = query.qryinfo.scanSize
 		if (query.qryinfo.NoSummary) then
@@ -2001,6 +2008,7 @@ function private.ResetAll()
 	private.curScan = nil
 	private.isPaused = nil
 	private.sentQuery = nil
+	private.sentPage = nil
 	private.isScanning = false
 	private.unexpectedClose = false
 
