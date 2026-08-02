@@ -698,7 +698,9 @@ function private.ProcessPosts(source)
 			return
 		end
 
-		StartAuction(request[REQ_BID], request[REQ_BUYOUT], request[REQ_DURATION])
+		-- WoW 3.3.3 added stackSize and numStacks parameters for multi-stack posting.
+		-- We build an exact-sized stack ourselves, so post that stack, once.
+		StartAuction(request[REQ_BID], request[REQ_BUYOUT], request[REQ_DURATION], request[REQ_COUNT], 1)
 		ClickAuctionSellItemButton()
 		if (CursorHasItem()) then -- Didn't auction successfully
 			ClearCursor() -- Put it back in the bags
