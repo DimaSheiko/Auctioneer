@@ -359,6 +359,31 @@ function private.CancelPurchase()
 	lib.ScanPage()
 end
 
+--[[
+	private.FindAuctionRow(request)
+	Returns the row the request's auction currently occupies, or nil if it is no longer on the page.
+	Matches on the same fields as lib.ScanPage, so an auction is never confused with a lookalike and
+	the row that comes back always carries the price the prompt was opened with.
+]]
+function private.FindAuctionRow(request)
+	local link = GetAuctionItemLink("list", request.index)
+	if link and AucAdvanced.SanitizeLink(link) == request.link then
+		return request.index -- still where we left it, which is the usual case
+	end
+	for i = GetNumAuctionItems("list"), 1, -1 do
+		link = GetAuctionItemLink("list", i)
+		if link and AucAdvanced.SanitizeLink(link) == request.link then
+			local _, _, count, _, _, _, minBid, _, buyout, _, _, owner = GetAuctionItemInfo("list", i)
+			if (not owner or request.sellername == "" or owner == request.sellername)
+			and (count == request.count)
+			and (minBid == request.minbid)
+			and (buyout == request.buyout) then
+				return i
+			end
+		end
+	end
+end
+
 function private.PerformPurchase()
 	if not private.CurAuction then return end
 	private.Searching = false
@@ -374,6 +399,14 @@ function private.PerformPurchase()
 		private.HidePrompt()
 		return
 	end
+	-- The page can move between the prompt opening and the bid going out: buying an auction ahead of
+	-- this one shifts everything behind it up a row, and so does a page refresh from any other cause.
+	-- The stored row then holds a different auction, and this was thrown away as "not found" - losing
+	-- the request for good, because ScanPage removes it from the queue before opening the prompt.
+	-- A page with two bargains could therefore only ever yield one of them.
+	index = private.FindAuctionRow(private.CurAuction) or index
+	private.CurAuction.index = index
+
 	local link = GetAuctionItemLink("list", index)
 	link = AucAdvanced.SanitizeLink(link)
 	local name, texture, count, _, _, _, minBid, minIncrement, buyout, curBid, ishigh, owner = GetAuctionItemInfo("list", index)
