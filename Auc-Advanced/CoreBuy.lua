@@ -433,6 +433,7 @@ function private.PerformPurchase()
 	end
 
 	PlaceAuctionBid("list", index, price)
+	AucAdvanced.Scan.RepeatPage() -- only once a bid is out, or a cancelled bargain would prompt forever
 
 	private.CurAuction.reason = private.Prompt.Reason:GetText()
 	--Add bid to list of bids we're watching for
