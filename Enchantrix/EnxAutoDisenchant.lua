@@ -66,11 +66,6 @@ end
 --------------------------------------------------------------------------------
 -- Item ignore list and utility functions
 
-local function itemStringFromLink(link)
-	local _, _, itemString = string.find(link, "^|c%x+|H(.+)|h%[.+%]")
-	return itemString
-end
-
 -- remove the uniqueID and viewer level from the link
 -- this needs to be updated whenever the link format changes
 local function genericizeItemLink(link)
@@ -500,7 +495,10 @@ function showPrompt(link, bag, slot, value, spell)
 
 	local _, _, _, _, _, _, _, _, _, texture = GetItemInfo(auto_de_prompt.link)
 	auto_de_prompt.Item:SetNormalTexture(texture)
-	auto_de_prompt.Yes:SetAttribute("target-item", itemStringFromLink(auto_de_prompt.link))
+	-- target the exact stack that passed the count check: "target-item" makes the client pick the
+	-- first stack of that item in the bags, which may hold fewer than 5 and fail the prospect
+	auto_de_prompt.Yes:SetAttribute("target-bag", bag)
+	auto_de_prompt.Yes:SetAttribute("target-slot", slot)
 	auto_de_prompt.Yes:SetAttribute("spell", spell)
 
 	if spell == _ENCH('ArgSpellProspectingName') then
@@ -550,7 +548,8 @@ function clearPrompt()
 	hidePrompt()
 	auto_de_prompt.link, auto_de_prompt.bag, auto_de_prompt.slot, auto_de_prompt.count, auto_de_prompt.time = nil, nil, nil, nil, nil
 	-- clear the button target so macro junkies don't get a surprise
-	auto_de_prompt.Yes:SetAttribute("target-item", nil)
+	auto_de_prompt.Yes:SetAttribute("target-bag", nil)
+	auto_de_prompt.Yes:SetAttribute("target-slot", nil)
 end
 
 local function promptNo()
