@@ -623,33 +623,34 @@ function lib.MakeGuiConfig()
 	gui:MakeScrollable(id)
 	gui:AddControl(id, "Header",     0,    _ENCH("GuiWeightSettings"))
 	gui:AddControl(id, "Note",     0, 1, 600, 60, _ENCH("GuiWeighSettingsNote"))
-	local numReag = #Enchantrix.Constants.DisenchantReagentList
-	local colPos = 0
-	for i=1, numReag do
-		local reagId = Enchantrix.Constants.DisenchantReagentList[i]
-		local reagName = Enchantrix.Util.GetReagentInfo(reagId)
-		if (not reagName) then reagName = "item:"..reagId end
-		gui:AddControl(id, "WideSlider", 0, 1, "weight."..reagId, 0, 250, 5, reagName..": %s%%")
-		local reagLink = Enchantrix.Util.GetLinkFromName(reagName)
-		gui:AddLinkTip(id, reagLink)
+
+	-- one row per reagent, for disenchanting and then prospecting results
+	-- the tip link is built from the id: GetLinkFromName scans every item id when the name is not cached
+	local function addReagentRows(addRow)
+		for _, reagId in ipairs(Enchantrix.Constants.DisenchantReagentList) do
+			addRow(reagId, Enchantrix.Util.GetReagentInfo(reagId), "item:"..reagId)
+		end
+		gui:AddControl(id, "Subhead", 0, _ENCH("GuiTabProspecting"))
+		for _, reagId in ipairs(Enchantrix.Constants.ProspectReagentList) do
+			addRow(reagId, Enchantrix.Util.GetReagentInfo(reagId), "item:"..reagId)
+		end
 	end
+
+	addReagentRows(function(reagId, reagName, reagLink)
+		gui:AddControl(id, "WideSlider", 0, 1, "weight."..reagId, 0, 250, 5, reagName..": %s%%")
+		gui:AddLinkTip(id, reagLink)
+	end)
 
 	id = gui:AddTab(_ENCH("GuiTabFixed"))
 	gui:MakeScrollable(id)
 	gui:AddControl(id, "Header",     0,  _ENCH("GuiFixedSettings"))
 	gui:AddControl(id, "Note",     0, 1, 600, 90, _ENCH("GuiFixedSettingsNote"))
-	local numReag = #Enchantrix.Constants.DisenchantReagentList
-	local colPos = 0
-	for i=1, numReag do
-		local reagId = Enchantrix.Constants.DisenchantReagentList[i]
-		local reagName = Enchantrix.Util.GetReagentInfo(reagId)
-		if (not reagName) then reagName = "item:"..reagId end
+	addReagentRows(function(reagId, reagName, reagLink)
 		last = gui:GetLast(id)
 		gui:AddControl(id, "Checkbox", 0, 1, "fixed."..reagId, ("%s:"):format(reagName))
-		local reagLink = Enchantrix.Util.GetLinkFromName(reagName)
 		gui:AddLinkTip(id, reagLink)
 		gui:SetLast(id, last)
 		gui:AddControl(id, "MoneyFramePinned", 0.6, 1, "fixed."..reagId..".value", 0, 99999999)
-	end
+	end)
 
 end
