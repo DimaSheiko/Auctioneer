@@ -363,25 +363,40 @@ end
 	private.FindAuctionRow(request)
 	Returns the row the request's auction currently occupies, or nil if it is no longer on the page.
 	Matches on the same fields as lib.ScanPage, so an auction is never confused with a lookalike and
-	the row that comes back always carries the price the prompt was opened with.
+	the row that comes back always carries the price the prompt was opened with. Even the stored row
+	gets the full check: on a page of dust from several sellers every row holds the same item, and the
+	neighbour that slid into it after a purchase carries another seller's price.
+	The stored row is still tried first. A seller's identical auctions all pass the check, and the one
+	just bought stays in the list until the client refreshes it: the search from the bottom finds that
+	one, and the server answers a bid on an auction that is gone with "You cannot bid on your own auction".
 ]]
-function private.FindAuctionRow(request)
-	local link = GetAuctionItemLink("list", request.index)
+local function RowHoldsAuction(i, request)
+	local link = GetAuctionItemLink("list", i)
 	if link and AucAdvanced.SanitizeLink(link) == request.link then
-		return request.index -- still where we left it, which is the usual case
-	end
-	for i = GetNumAuctionItems("list"), 1, -1 do
-		link = GetAuctionItemLink("list", i)
-		if link and AucAdvanced.SanitizeLink(link) == request.link then
-			local _, _, count, _, _, _, minBid, _, buyout, _, _, owner = GetAuctionItemInfo("list", i)
-			if (not owner or request.sellername == "" or owner == request.sellername)
+		local _, _, count, _, _, _, minBid, _, buyout, _, _, owner = GetAuctionItemInfo("list", i)
+		return (not owner or request.sellername == "" or owner == request.sellername)
 			and (count == request.count)
 			and (minBid == request.minbid)
-			and (buyout == request.buyout) then
-				return i
-			end
+			and (buyout == request.buyout)
+	end
+end
+function private.FindAuctionRow(request)
+	if RowHoldsAuction(request.index, request) then
+		return request.index
+	end
+	for i = GetNumAuctionItems("list"), 1, -1 do
+		if RowHoldsAuction(i, request) then
+			return i
 		end
 	end
+end
+
+-- A bid that never goes out must not take the rest of the queue with it. Only a placed bid asks for
+-- the next prompt, and once none is open OnUpdate drops every request still waiting as not found.
+function private.AbortPurchase(reason)
+	aucPrint(highlight.."Cancelling bid: "..reason)
+	private.HidePrompt()
+	lib.ScanPage()
 end
 
 function private.PerformPurchase()
@@ -391,38 +406,30 @@ function private.PerformPurchase()
 	local index = private.CurAuction.index
 	local price = private.CurAuction.price
 	if type(price)~="number" then
-		aucPrint(highlight.."Cancelling bid: invalid price: "..type(price)..":"..tostring(price))
-		private.HidePrompt()
-		return
+		return private.AbortPurchase("invalid price: "..type(price)..":"..tostring(price))
 	elseif type(index) ~= "number" then
-		aucPrint(highlight.."Cancelling bid: invalid index: "..type(index)..":"..tostring(index))
-		private.HidePrompt()
-		return
+		return private.AbortPurchase("invalid index: "..type(index)..":"..tostring(index))
 	end
 	-- The page can move between the prompt opening and the bid going out: buying an auction ahead of
 	-- this one shifts everything behind it up a row, and so does a page refresh from any other cause.
 	-- The stored row then holds a different auction, and this was thrown away as "not found" - losing
 	-- the request for good, because ScanPage removes it from the queue before opening the prompt.
 	-- A page with two bargains could therefore only ever yield one of them.
-	index = private.FindAuctionRow(private.CurAuction) or index
+	-- Falling back to the stored row would bid on whatever auction sits there now.
+	index = private.FindAuctionRow(private.CurAuction)
+	if not index then
+		return private.AbortPurchase(private.CurAuction.link.." is no longer on the page")
+	end
 	private.CurAuction.index = index
 
 	local link = GetAuctionItemLink("list", index)
 	link = AucAdvanced.SanitizeLink(link)
 	local name, texture, count, _, _, _, minBid, minIncrement, buyout, curBid, ishigh, owner = GetAuctionItemInfo("list", index)
 
-	if (private.CurAuction.link ~= link) then
-		aucPrint(highlight.."Cancelling bid: "..tostring(index).." not found")
-		private.HidePrompt()
-		return
-	elseif (price < minBid) then
-		aucPrint(highlight.."Cancelling bid: Bid below minimum bid: "..AucAdvanced.Coins(price))
-		private.HidePrompt()
-		return
+	if (price < minBid) then
+		return private.AbortPurchase("Bid below minimum bid: "..AucAdvanced.Coins(price))
 	elseif (curBid and curBid > 0 and price < curBid + minIncrement and price < buyout) then
-		aucPrint(highlight.."Cancelling bid: Already higher bidder")
-		private.HidePrompt()
-		return
+		return private.AbortPurchase("Already higher bidder")
 	end
 	if get("ShowPurchaseDebug") then
 		if buyout > 0 and price >= buyout then
