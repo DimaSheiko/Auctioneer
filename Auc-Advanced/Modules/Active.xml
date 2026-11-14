@@ -3,6 +3,7 @@
 		AucAdvanced.EmbeddedModules = {
 			"Auc-Filter-Outlier",
 			"Auc-Match-Undercut",
+			"Auc-Stat-MinBuyout",
 			"Auc-Stat-Sales",
 			"Auc-Stat-WOWEcon",
 			"Auc-Util-AHWindowControl",
@@ -29,6 +30,7 @@
 
 	<Include file="Auc-Filter-Outlier\Embed.xml"/>
 	<Include file="Auc-Match-Undercut\Embed.xml"/>
+	<Include file="Auc-Stat-MinBuyout\Embed.xml"/>
 	<Include file="Auc-Stat-Sales\Embed.xml"/>
 	<Include file="Auc-Stat-WOWEcon\Embed.xml"/>
 	<Include file="Auc-Util-AHWindowControl\Embed.xml"/>
