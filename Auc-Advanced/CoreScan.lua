@@ -228,16 +228,15 @@ end
 
 --[[ AucAdvanced.Scan.RepeatPage()
 	A purchase removes an auction from the page the paused scan is on, so the first auctions of the
-	next page move up onto it. Resuming at the next page would skip them; this makes the next PopScan
-	ask for the same page again instead.
+	next page move up onto it. Resuming at the next page would skip them; this makes PopScan ask for
+	the same page again instead. The request holds until a page arrives: every prompt on the page
+	pushes and pops the scan again, and a cancelled bid after the purchases must not move it on.
 --]]
 function lib.RepeatPage()
 	private.repeatPage = true
 end
 
 function lib.PopScan()
-	local repeatPage = private.repeatPage
-	private.repeatPage = nil
 	if private.scanStack and #private.scanStack > 0 then
 		local now, pauseTime = GetTime()
 		private.scanStartTime,
@@ -268,7 +267,7 @@ function lib.PopScan()
 		--private.Print(("Resuming paused scan at page {{%d}}..."):format(private.curQuery.qryinfo.page+1))
 		private.isScanning = true
 		private.sentQuery = false
-		private.ScanPage(private.curQuery.qryinfo.page + (repeatPage and 0 or 1))
+		private.ScanPage(private.curQuery.qryinfo.page + (private.repeatPage and 0 or 1))
 		private.UpdateScanProgress(true, nil, nil, nil, nil, nil, private.curQuery)
 	end
 end
@@ -1435,6 +1434,7 @@ local StorePageFunction = function()
 		return
 	end
 	private.sentQuery = false
+	private.repeatPage = nil -- this is the fresh reading a purchase asked for
 	-- Use the page number captured from the QueryAuctionItems call, not Blizzard's
 	-- browse frame. Addons that drive their own paging (Auctionator, and any other
 	-- direct caller) never update AuctionFrameBrowse.page, so it stays at whatever
