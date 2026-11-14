@@ -147,6 +147,8 @@ local settingDefaults = {
 	['profile.name'] = '',		-- not sure why this gets hit so often, might be a bug
 
 	['ScanValueType'] = "average",		-- what value to use for auction scans
+	['ScanValueType.prospect'] = "same",	-- gems and powders, "same" follows ScanValueType
+	['ScanValueType.milling'] = "same",		-- pigments, "same" follows ScanValueType
 
 	['AuctionBalanceEssencePrices'] = false,	-- should we balance the price of essences before doing auction scans?
 	['AuctionBalanceEssenceStyle'] = "avg",		-- how do we balance the price of essences
@@ -452,7 +454,7 @@ local function getter(setting)
 	end
 
 	if (a == 'scanvalue') then
-		if (b == 'list') then
+		if (b == 'list') or (b == 'sublist') then
 			if not private.scanValueNames then private.scanValueNames = {} end
 
 			for i = 1, #private.scanValueNames do
@@ -471,6 +473,9 @@ local function getter(setting)
 			if Auctioneer then
 				table.insert(private.scanValueNames,{"auc4:hsp", _ENCH("GuiItemValueAuc4HSP") })
 				table.insert(private.scanValueNames,{"auc4:med", _ENCH("GuiItemValueAuc4Median") })
+			end
+			if (b == 'sublist') then
+				table.insert(private.scanValueNames, 1, {"same", _ENCH("GuiItemValueSame") })
 			end
 
 			return private.scanValueNames
@@ -533,6 +538,7 @@ function lib.MakeGuiConfig()
 	gui:AddControl(id, "Button",     0, 1, "profile.duplicate", _ENCH("GuiDuplicateProfileButton"))
 
 	id = gui:AddTab(_ENCH("GuiTabGeneral"))
+	gui:MakeScrollable(id)
 	gui:AddControl(id, "Header",     0,    _ENCH("GuiGeneralOptions"))
 	gui:AddControl(id, "Checkbox", 0, 1, "ModTTShow", _ENCH("ModTTShow"))--Only display our extra tooltip data if Alt is pressed.
 	gui:AddTip(id, _ENCH("ModTTShow_Help"))--Show Enchantrix's extra tooltip only if Alt is pressed.
@@ -545,7 +551,17 @@ function lib.MakeGuiConfig()
 	gui:AddControl(id, "Checkbox",   0, 1, "TooltipShowMatSources", _ENCH("GuiShowMatSources") )
 
 	gui:AddControl(id, "Subhead",    0,    _ENCH("GuiItemValueCalc"))
-	gui:AddControl(id, "Selectbox",  0, 1, "scanvalue.list", "ScanValueType", "this string isn't shown")
+	-- one valuation for disenchant reagents, gems and pigments, each row labelled with its spell
+	for _, row in ipairs({
+		{ "ArgSpellname",            "scanvalue.list",    "ScanValueType" },
+		{ "ArgSpellProspectingName", "scanvalue.sublist", "ScanValueType.prospect" },
+		{ "ArgSpellMillingName",     "scanvalue.sublist", "ScanValueType.milling" },
+	}) do
+		last = gui:GetLast(id)
+		gui:AddControl(id, "Note",       0, 1, 110, 22, _ENCH(row[1])..":")
+		gui:SetLast(id, last)
+		gui:AddControl(id, "Selectbox",  0.2, 1, row[2], row[3], "this string isn't shown")
+	end
 
 -- TODO: locale -- what are the allowed values?
 -- TODO: printframe  -- what are the allowed values?  Configurator really needs a restricted value number box (without a slider)
@@ -624,7 +640,7 @@ function lib.MakeGuiConfig()
 	gui:AddControl(id, "Header",     0,    _ENCH("GuiWeightSettings"))
 	gui:AddControl(id, "Note",     0, 1, 600, 60, _ENCH("GuiWeighSettingsNote"))
 
-	-- one row per reagent, for disenchanting and then prospecting results
+	-- one row per reagent, for disenchanting, prospecting and milling results
 	-- the tip link is built from the id: GetLinkFromName scans every item id when the name is not cached
 	local function addReagentRows(addRow)
 		for _, reagId in ipairs(Enchantrix.Constants.DisenchantReagentList) do
@@ -632,6 +648,10 @@ function lib.MakeGuiConfig()
 		end
 		gui:AddControl(id, "Subhead", 0, _ENCH("GuiTabProspecting"))
 		for _, reagId in ipairs(Enchantrix.Constants.ProspectReagentList) do
+			addRow(reagId, Enchantrix.Util.GetReagentInfo(reagId), "item:"..reagId)
+		end
+		gui:AddControl(id, "Subhead", 0, _ENCH("GuiTabMilling"))
+		for _, reagId in ipairs(Enchantrix.Constants.MillReagentList) do
 			addRow(reagId, Enchantrix.Util.GetReagentInfo(reagId), "item:"..reagId)
 		end
 	end

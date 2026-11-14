@@ -313,7 +313,7 @@ function getItemProspectTotals(link)
 	local totalHSP, totalMed, totalMkt, totalFive = 0,0,0,0
 
 	for result, resProb in pairs(data) do
-		local style, extra = Enchantrix.Util.GetPricingModel()
+		local style, extra = Enchantrix.Util.GetPricingModel(result)
 		local hsp, med, mkt, five = Enchantrix.Util.GetReagentPrice(result,extra)
 		local resHSP, resMed, resMkt, resFive = (hsp or 0)*resProb, (med or 0)*resProb, (mkt or 0)*resProb, (five or 0)*resProb
 		totalHSP = totalHSP + resHSP
@@ -346,7 +346,7 @@ function getItemDisenchantTotals(link)
 			if (result ~= "total") then
 
 				local resNumber, resQuantity = unpack(resData)
-				local style, extra = Enchantrix.Util.GetPricingModel()
+				local style, extra = Enchantrix.Util.GetPricingModel(result)
 				local hsp, med, mkt, five = Enchantrix.Util.GetReagentPrice(result,extra)
 				local resProb, resCount = resNumber/totalNumber, resQuantity/resNumber
 				local resYield = resProb * resCount;	-- == resQuantity / totalNumber;
@@ -377,7 +377,7 @@ function getItemMillingTotals(link)
 	local totalHSP, totalMed, totalMkt, totalFive = 0,0,0,0
 
 	for result, resProb in pairs(data) do
-		local style, extra = Enchantrix.Util.GetPricingModel()
+		local style, extra = Enchantrix.Util.GetPricingModel(result)
 		local hsp, med, mkt, five = Enchantrix.Util.GetReagentPrice(result,extra)
 		local resHSP, resMed, resMkt, resFive = (hsp or 0)*resProb, (med or 0)*resProb, (mkt or 0)*resProb, (five or 0)*resProb
 		totalHSP = totalHSP + resHSP

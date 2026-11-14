@@ -1001,8 +1001,19 @@ local function balanceEssencePrices(scanReagentTable, style)
 
 end
 
-function Enchantrix.Util.GetPricingModel()
-	local style = Enchantrix.Settings.GetSetting('ScanValueType');
+-- prospecting and milling results can be valued apart from disenchant reagents
+local pricingKinds = {}
+for _, id in ipairs(Enchantrix.Constants.ProspectReagentList) do pricingKinds[id] = "prospect" end
+for _, id in ipairs(Enchantrix.Constants.MillReagentList) do pricingKinds[id] = "milling" end
+
+-- reagent (optional, item id or link) picks the setting: gems and pigments have their own
+function Enchantrix.Util.GetPricingModel(reagent)
+	if type(reagent) == "string" then reagent = reagent:match("item:(%d+)") end
+	local kind = pricingKinds[tonumber(reagent) or 0]
+	local style = kind and Enchantrix.Settings.GetSetting('ScanValueType.'..kind)
+	if (not style) or (style == "same") then
+		style = Enchantrix.Settings.GetSetting('ScanValueType');
+	end
 	local extra = nil
 	if (not style) then
 		style = "average";

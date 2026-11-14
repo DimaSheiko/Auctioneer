@@ -983,6 +983,21 @@ const.ReversePigmentList = {
 
 }
 
+-- pigments in a fixed order for the UI, like DisenchantReagentList
+-- each common pigment is followed by the rare one from the same herbs
+const.MillReagentList = {
+
+	AZURE_PIGMENT, ICY_PIGMENT,
+	NETHER_PIGMENT, EBON_PIGMENT,
+	SILVERY_PIGMENT, SAPPHIRE_PIGMENT,
+	VIOLET_PIGMENT, RUBY_PIGMENT,
+	EMERALD_PIGMENT, INDIGO_PIGMENT,
+	GOLDEN_PIGMENT, BURNT_PIGMENT,
+	DUSKY_PIGMENT, VERDANT_PIGMENT,
+	ALABASTER_PIGMENT,
+
+}
+
 -- map groups to a string for now
 local	ALABASTER_PIGMENT_LOW = "ALABASTER_PIGMENT_LOW"
 local	DUSKY_PIGMENT_LOW =  "DUSKY_PIGMENT_LOW"
